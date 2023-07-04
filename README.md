@@ -37,15 +37,15 @@ Lastly, the "Lab Objectives" and "Lab Components" sections define the specific o
 
 2.2 Lab Components
 
-    2.1.1 VS Code (Integrated Development Environment)
+2.1.1 VS Code (Integrated Development Environment)
 
-    2.2.2 Terraform  (Infrastructure Provisioning and Management Tool)
+2.2.2 Terraform  (Infrastructure Provisioning and Management Tool)
 
-    2.2.3 Github (Continuous Integration and Deployment Platform)
+2.2.3 Github (Continuous Integration and Deployment Platform)
 
-    2.2.4 Docker and Containers
+2.2.4 Docker and Containers
 
-    2.2.5 Proyects to Deploy (Contentized using Docker and Deployed to Kubernetes)
-    - Wordpress Site
-    - Python App
+2.2.5 Proyects to Deploy (Contentized using Docker and Deployed to Kubernetes)  
+	- Wordpress Site  
+	- Python App  
     
