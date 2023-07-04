@@ -12,7 +12,8 @@ Lastly, the "Lab Objectives" and "Lab Components" sections define the specific o
 
 1. Lab Setup  
     1.1 Infrastructure as Code (IaC)  
-   [Build the Lab Environment](./buildLabEnvironment.md)
+   [Build the Lab Environment](./buildLabEnvironment.md)  
+   [Terraform Config](./setupTerraform.md)
 
       1.1.1 Azure Resources
 
