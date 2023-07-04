@@ -136,3 +136,35 @@ this state manually. There are specialized commands for making state changes and
 
 So for the most part, one, you probably shouldn't have direct access to it. It should be stored remotely. But two, don't go around and start changing things in this state. It's not the
 right way to manage your resources.
+
+It specifies the Terraform version. It's got a serial number, a lineage, a lot of really good information to help you understand which state you're dealing with. And every time the state is modified, it actually creates a backup.
+
+So once we run a Terraform apply or destroy again, the Terraform state will be backed up with this Terraform state information and a new ``Terraform.tfstate`` will be created. So as you look through our state here, you can see a lot of very familiar attributes.
+
+Right here, we've got our Azure RM resource group with a name. Then you've got the provider there also. Then under that, we've got ID, location, name, tags, et cetera, et cetera. And as you scroll
+down, you'll see we also have our virtual network here. So that's pretty cool. And all of that, of course, is exactly what was deployed within Azure. 
+
+Because again, typically speaking, you're not going to store your state locally. You're going to send it off to some sort of other storage. Some people with AWS store it in S3. You can store it in Terraform's cloud. You can store it in services such as Spacelift and more.
+
+let's go ahead and run a ``Terraform state list``
+
+<img width="719" alt="image" src="assets/tfStateList1.png">
+
+So that's an easy way to see all of the resources we have. And then if we want more details about what's in those resources, we can run a ``Terraform state show <name_of_recource>``.
+
+<img width="719" alt="image" src="assets/tfStateShow1.png">
+
+So now we get the information from that resource.
+
+And now if we want to see the entire state, we actually just run a ``Terraform show``. So keep that in mind. ``Terraform show`` will show you all of the state, as you can
+see here. And then ``Terraform state show <name_of_recource>`` is how you view specific resources, just like so.
+
+<img width="719" alt="image" src="assets/tfShow1.png">
+
+So if we take a look at the [Terraform docs here](https://developer.hashicorp.com/terraform/language/state), there's actually a good bit that you can read through. I strongly suggest you get very, very familiar with it.
+
+# Terraform Destroy
+
+<img width="719" alt="image" src="assets/tfDestroyDocs1.png">
+
+if we take a look at the [Terraform docs: Command: destroy](https://developer.hashicorp.com/terraform/cli/commands/destroy), we can actually see that a few things have changed since Terraform came out. Originally, Terraform destroy was the proper way to do this. And it still works. As you can see Terraform destroy followed by options. This is an alias for Terraform apply dash destroy. Now you can also run a Terraform plan dash destroy, which of course will not perform the destruction. It will just let you know what it's going to do.
