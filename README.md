@@ -1,4 +1,4 @@
-# k8sLabs
+# IaCLabs
 This mind map provides an overview of the key components in your lab setup. 
 It starts with the "Lab Setup" section, which encompasses all the different aspects of your lab. 
 The "Infrastructure as Code (IaC)" section emphasizes the importance of managing your lab infrastructure using code, enabling reproducibility and scalability..
