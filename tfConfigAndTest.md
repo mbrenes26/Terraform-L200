@@ -121,7 +121,15 @@ resource "azurerm_virtual_network" "k8sLabs-vnet" {
 }
 ```
 I think that's everything. Let's go ahead and run our ``Terraform format``. And after that, let's run our ``Terraform plan``.
+
 <img width="719" alt="image" src="assets/tfPlanVnet1.png">
 
 Let's go ahead and get this network deployed. So Terraform apply. And as I said, we're just going to use a ``Terraform apply -auto-approve`` here. And if you want to see everything else, you can actually do a ``-help``.
 <img width="719" alt="image" src="assets/tfApplyVnet1.png">
+
+# Terraform State
+
+You may have noticed this ``Terraform.state`` file and this ``Terraform.tfstate.backup`` file. Under very, very, very few circumstances should you ever modify
+this state manually. There are specialized commands for making state changes and things.
+
+<img width="719" alt="image" src="assets/tfState1.png">
