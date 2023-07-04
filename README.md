@@ -12,6 +12,7 @@ Lastly, the "Lab Objectives" and "Lab Components" sections define the specific o
 
 1. Lab Setup  
     1.1 Infrastructure as Code (IaC)  
+   [Build the Lab Environment](./buildLabEnvironment.md)
 
       1.1.1 Azure Resources
 
@@ -19,7 +20,7 @@ Lastly, the "Lab Objectives" and "Lab Components" sections define the specific o
 
       1.1.3 Kubernetes Cluster Setup
 
-2. Tools and Technologies  
+3. Tools and Technologies  
 
    2.1 Lab Objectives
 
