@@ -35,15 +35,17 @@ Lastly, the "Lab Objectives" and "Lab Components" sections define the specific o
 
    2.1.6 **Deploy WordPress to Kubernetes:** Deploy the containerized WordPress application to the Kubernetes cluster, leveraging Kubernetes resources like Pods, Services, and Ingress to ensure high availability and scalability.
 
+2.2 Lab Components
 
-3. Lab Components
+    2.1.1 VS Code (Integrated Development Environment)
 
-- VS Code (Integrated Development Environment)
+    2.2.2 Terraform  (Infrastructure Provisioning and Management Tool)
 
-- Terraform  (Infrastructure Provisioning and Management Tool)
+    2.2.3 Github (Continuous Integration and Deployment Platform)
 
-- Github (Continuous Integration and Deployment Platform)
+    2.2.4 Docker and Containers
 
-- Docker and Containers
-
-- Wordpress Site (Contentized using Docker and Deployed to Kubernetes)
+    2.2.5 Proyects to Deploy (Contentized using Docker and Deployed to Kubernetes)
+    - Wordpress Site
+    - Python App
+    
