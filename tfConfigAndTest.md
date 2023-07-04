@@ -133,3 +133,6 @@ You may have noticed this ``Terraform.state`` file and this ``Terraform.tfstate.
 this state manually. There are specialized commands for making state changes and things.
 
 <img width="719" alt="image" src="assets/tfState1.png">
+
+So for the most part, one, you probably shouldn't have direct access to it. It should be stored remotely. But two, don't go around and start changing things in this state. It's not the
+right way to manage your resources.
