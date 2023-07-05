@@ -1,4 +1,4 @@
-# Terraform Config & Test
+# Terraform Config & Test Deployment
 Open a new folder where we'll store our files, and I'm going to create a new folder. And we'll just call that Terraform Azure, just like
 so. Go ahead and open that, select folder, and all set. And once again, I'll just make sure that Terraform Provider Init.
 
@@ -25,7 +25,6 @@ provider "azurerm" {
 }
 
 ```
-
 
 Now, as you can see, we've got Terraform, and then we've got required providers. So any of the providers we're going to use are specified in this block. So we've got the Azure RM provider.
 The source here is HashiCorp Azure RM. And then we've got a version. Now, this is actually freezing this version to 3.0.0. Your version may be different, and that's perfectly fine. Of course,
@@ -77,7 +76,7 @@ Now let's run a ``Terraform FMT`` once again, and then let's run a ``Terraform p
 
 And what this is doing is showing us what is going to be built if we run a Terraform apply. So as you can see, we've got our plus signs for create. There are other signs, but right now, we're not changing anything. So you can see that we're creating this new resource. And then under that, you've got the arguments that we're passing in. And as you can see, we've got the ID known after apply, which means we will know that as soon as this is deployed to Azure.
 
-## Test to deploy
+## Deploy a Resource Group
 
 So let's go ahead and deploy that: run ``Terraform apply`` and hit enter
 <img width="719" alt="image" src="assets/tfApply.png">
@@ -85,7 +84,7 @@ So let's go ahead and deploy that: run ``Terraform apply`` and hit enter
 Now in the future, we will use the auto approve flag just to skip that because we are running a plan between all of this. So we don't need to get another confirmation. But generally
 speaking, when running from the CLI in production, it's probably a good idea to have this extra step just to ensure you don't make any mistakes.
 
-## Deploy the Virtual Network
+## Deploy a Virtual Network
 We're going to set the groundwork for our deployment by deploying a virtual network. In order to do that, we'll also need to learn how to reference attributes of other resources.
 
 So we've got the documentation at [azurerm_virtual_network](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network), which is where we always start.
@@ -127,7 +126,7 @@ I think that's everything. Let's go ahead and run our ``Terraform format``. And 
 Let's go ahead and get this network deployed. So Terraform apply. And as I said, we're just going to use a ``Terraform apply -auto-approve`` here. And if you want to see everything else, you can actually do a ``-help``.
 <img width="719" alt="image" src="assets/tfApplyVnet1.png">
 
-# Terraform State
+# Test Terraform State
 
 You may have noticed this ``Terraform.state`` file and this ``Terraform.tfstate.backup`` file. Under very, very, very few circumstances should you ever modify
 this state manually. There are specialized commands for making state changes and things.
@@ -163,8 +162,170 @@ see here. And then ``Terraform state show <name_of_recource>`` is how you view s
 
 So if we take a look at the [Terraform docs here](https://developer.hashicorp.com/terraform/language/state), there's actually a good bit that you can read through. I strongly suggest you get very, very familiar with it.
 
-# Terraform Destroy
+# Tesing Terraform Destroy & Rebuild
 
 <img width="719" alt="image" src="assets/tfDestroyDocs1.png">
 
 if we take a look at the [Terraform docs: Command: destroy](https://developer.hashicorp.com/terraform/cli/commands/destroy), we can actually see that a few things have changed since Terraform came out. Originally, Terraform destroy was the proper way to do this. And it still works. As you can see Terraform destroy followed by options. This is an alias for Terraform apply dash destroy. Now you can also run a Terraform plan dash destroy, which of course will not perform the destruction. It will just let you know what it's going to do.
+
+Now, of course, what Terraform destroy does here is destroy everything that you've created
+
+But let's take a look at a few things first. First, what I'm going to do is just run a ``Terraform state list``: We have two objects here. As you know, we've deployed both of those
+
+<img width="719" alt="image" src="assets/tfStateList1.png">
+
+And then if I run a ``Terraform plan -destroy``, as you can see, we've got  **zero to add, zero to change, and two to destroy** . And if you scroll up, you can see that everything has this
+little red dash next to it indicating that it's going to be deleted. So if you ever see that red dash, that means that that resource is going to be deleted.
+
+<img width="719" alt="image" src="assets/tfPlanDestroy1.png">
+
+So I'm going to run ``Terraform apply -destroy``, or you can just run Terraform destroy if you'd like. Let's go ahead and run that.
+
+<img width="719" alt="image" src="assets/tfApplyDestroy1.png">
+
+As you can see, it took it a while to delete that resource group. Let's take a look at the ``terraform.tfstate`` and ``terraform.tfstate.backup`` again. Here is the tfstate. As you can see,
+there is nothing in here anymore. And the serial has incremented to six. Now if we take a look at the tfstate.backup, here you go. This was our old tfstate. So now if you ever needed to replace the
+state or you made a big mistake or something went wrong with the state, somehow the state got corrupted, you have this backup right here. You can delete this tfstate and rename this one
+
+# Deploy a Subnet
+And we're going to deploy a subnet into our virtual network. This way we have an IP address space that can be used by our virtual machines.
+
+So as usual, let's take a peek at our [azurerm_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) resource.
+
+It's got a very similar note here that we saw on our virtual network resource that indicated that these subnets can be deployed in line with the virtual network, but in our case and most other cases, it's better to deploy it separately from the virtual network.
+
+```
+resource "azurerm_subnet" "k8sLabs-subNnet-control" {
+  name                 = "subNnet-k8sLab-control"
+  resource_group_name  = azurerm_resource_group.k8sLabs-resources.name
+  virtual_network_name = azurerm_virtual_network.k8sLabs-vnet.name
+  address_prefixes     = ["192.168.0.0/28"]
+}
+
+resource "azurerm_subnet" "k8sLabs-subNnet-worker" {
+  name                 = "subNnet-k8sLab-worker"
+  resource_group_name  = azurerm_resource_group.k8sLabs-resources.name
+  virtual_network_name = azurerm_virtual_network.k8sLabs-vnet.name
+  address_prefixes     = ["192.168.0.16/28"]
+}
+```
+
+You may run ``Terraform plan`` to see what gonna be happening. As you can see, those were populated just fine by referencing the name of the subnet. So go ahead and run a ``Terraform apply -auto-approve``.
+
+<img width="719" alt="image" src="assets/tfApplySubnet1.png">
+
+# Deploy a Security Group
+
+First, let's take a look at [azurerm_network_security_group](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_group). And as you can see, we have another note. Now with the security group, you can actually define your **security group rules** in line, just like this, or as separate resources. Now to keep things consistent, we're going to deploy our security group rule as a separate resource, instead of adding it in line. This will make maintaining our security group rules a lot easier and allow us to make deploys and changes without any real unexpected consequences.
+
+```
+resource "azurerm_network_security_group" "k8sLabs-nsg" {
+  name                = "nsg-k8sLab"
+  location            = azurerm_resource_group.k8sLabs-resources.location
+  resource_group_name = azurerm_resource_group.k8sLabs-resources.name
+
+  tags = {
+    environment = "dev"
+  }
+}
+
+```
+I'm going to select the [azurerm_network_security_rule](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_rule) resource. And if you take a look, Azure RM network security rule example, you've got all of these items here that need to be filled in. And then you reference the resource group name and the network security group name.
+
+```
+resource "azurerm_network_security_rule" "k8sLabs-nsgRule" {
+  name                        = "k8sLabs-AllTraffic"
+  priority                    = 100
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.k8sLabs-resources.name
+  network_security_group_name = azurerm_network_security_group.k8sLabs-nsg.name
+}
+```
+Let's run ``Terraform plan`` to see if we have any typo error. As you can see, those were populated just fine by referencing the name of the subnet. So go ahead and run a ``Terraform apply -auto-approve``.
+
+<img width="719" alt="image" src="assets/tfApplyNsgRule1.png">
+
+# Deploy a Security Group Associations
+
+We're going to associate our brand new security group with our subnet so it can be actually used to protect it.
+
+As you can see here, we have our [azurerm_subnet_network_security_group_association](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet_network_security_group_association), Luckily, it's not that long of a resource. It's actually very, very straightforward and very simple.
+
+```
+
+resource "azurerm_subnet_network_security_group_association" "nsgRuleAssociation-k8sLabs-AllTraffic-controlSubnet" {
+  subnet_id                 = azurerm_subnet.k8sLabs-subNnet-control.id
+  network_security_group_id = azurerm_network_security_group.k8sLabs-nsg.id
+}
+resource "azurerm_subnet_network_security_group_association" "nsgRuleAssociation-k8sLabs-AllTraffic-workerSubnet" {
+  subnet_id                 = azurerm_subnet.k8sLabs-subNnet-worker.id
+  network_security_group_id = azurerm_network_security_group.k8sLabs-nsg.id
+}
+
+```
+
+Let's run ``Terraform plan`` to see if we have any typo error. As you can see, those were populated just fine by referencing the name of the subnet. So go ahead and run a ``Terraform apply -auto-approve``.
+
+<img width="719" alt="image" src="assets/tfApplyNsgRuleAssociation1.png">
+
+# Deploy a Public IP
+
+We're going to give our future virtual machine a way to the internet by creating a public IP. So let's get started. All right, so here we are with the [azurerm_public_ip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip).
+
+```
+resource "azurerm_public_ip" "k8sLabs-PIP-Control" {
+  name                = "k8sLabs-PIP-Control"
+  resource_group_name = azurerm_resource_group.k8sLabs-resources.name
+  location            = azurerm_resource_group.k8sLabs-resources.location
+  allocation_method   = "Dynamic"
+
+  tags = {
+    environment = "dev"
+  }
+}
+```
+Let's run ``Terraform plan`` and run a ``Terraform apply -auto-approve``.
+
+<img width="719" alt="image" src="assets/tfApplyPIPControl1.png">
+
+Go ahead and run our ``Terraform state list``, I'm going to do is grab this IP **azurerm_public_ip.k8sLabs-PIP-Control**
+
+<img width="719" alt="image" src="assets/tfStateListPIPControl1.png">
+
+When you run ``Terraform state show azurerm_public_ip.k8sLabs-PIP-Control`` will notice there if no Ip address assigned, this is because this resource is not currently attached. But once we deploy our other resources,
+we will be able to extract that IP address and use it in the future.
+
+# Deploy a Virtual Network Interface
+
+This NIC will receive its public IP address from the IP address we just created.
+So here is our network interface: [azurerm_network_interface](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_interface)
+
+As you can see, it kind of gets our usual suspects, the name, location, resource group name. We then get the IP configuration under that. And we've got a name for that, subnet ID and private IP address allocation. But as you can see, we don't have public IP address listed here, which is something that is very important to us, so we'll add this argument to our new definition as ``public_ip_address_id = azurerm_public_ip.k8sLabs-PIP-Control.id``
+
+```
+
+resource "azurerm_network_interface" "nic01-k8sLabs-Control" {
+  name                = "nic01-k8sLabs-Control-VM"
+  location            = azurerm_resource_group.k8sLabs-resources.location
+  resource_group_name = azurerm_resource_group.k8sLabs-resources.name
+
+  ip_configuration {
+    name                          = "ControlInternal"
+    subnet_id                     = azurerm_subnet.k8sLabs-subNnet-control.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.k8sLabs-PIP-Control.id
+  }
+}
+
+```
+
+So if we run a ``Terraform state list``, we've got our nick there. And if we run a ``Terraform state show``, add that to the end. As you can see, we have a private IP address right there, but I'm not seeing a public IP address yet.
+
+
+
