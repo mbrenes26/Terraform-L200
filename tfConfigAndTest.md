@@ -327,5 +327,180 @@ resource "azurerm_network_interface" "nic01-k8sLabs-Control" {
 
 So if we run a ``Terraform state list``, we've got our nick there. And if we run a ``Terraform state show``, add that to the end. As you can see, we have a private IP address right there, but I'm not seeing a public IP address yet.
 
+# Deploy a Linux Virtual Machine
 
+## Create an SSH Key Pair
 
+This will be used by the Linux VM resource we created so that we can SSH into it later.
+As we can see in the [azurerm_linux_virtual_machine](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_virtual_machine), we've got the admin SSH key right here.
+
+```
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = file("~/.ssh/id_rsa.pub")
+  }
+```
+
+Because we need to create the public_key first, so let's head back into our terminal actually. Let's go ahead and run an ``ssh-keygen -t rsa``. We're going to create an RSA key pair. You'll want to just save it in the same path that's illustrated here. We're just going to rename it.
+
+<img width="719" alt="image" src="assets/ssh-keyGen1.png">
+
+So if I run an ``ls ~/.ssh``, you can see the key files ready to go.
+
+<img width="719" alt="image" src="assets/ssh-keyGen2.png">
+
+## Create a Linux Virtual Machine
+
+And then what I want to do is add that key pair. And I'm actually going to put that above this OS disk just to keep it consistent with the documentation, but it really doesn't matter as long as what's within the VM block. So admin SSH key ``username = k8slabsadmin`` as we remembered before and now we're going to use a terraform function. So just like any other programming construct, it basically is the name of the function followed by parentheses. So we're going to use the [file function](https://developer.hashicorp.com/terraform/language/functions/file) and what the file function does is reads a file and substitutes its contents for the value here. Make sure you wrap that in quotes. ``public_key = file("~/.ssh/k8sLabs.pub")``
+```
+resource "azurerm_linux_virtual_machine" "k8sLabs-VM-Control" {
+  name                = "k8sLabs-Control"
+  resource_group_name = azurerm_resource_group.k8sLabs-resources.name
+  location            = azurerm_resource_group.k8sLabs-resources.location
+  size                = "Standard_F2"
+  admin_username      = "k8slabsadmin"
+  network_interface_ids = [
+    azurerm_network_interface.nic01-k8sLabs-Control.id,
+  ]
+
+  admin_ssh_key {
+    username   = "k8slabsadmin"
+    public_key = file("~/.ssh/k8sLabs.pub")
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
+  }
+}
+
+```
+
+So now let's go ahead and apply and make sure that we can log into our instance. So I'm going to run my ``terraform fmt`` once again, to clean all of that up. Then I'm going to run ``terraform plan``. Let's make sure everything is looking good.
+
+<img width="719" alt="image" src="assets/tfPlanVMControl1.png">
+
+and finally run ``terraform apply -auto-approve``
+
+<img width="719" alt="image" src="assets/tfApplyVMControl1.png">
+
+So now let's go and see if we can find that IP address. Let's just run once again, a ``terraform state list``.
+
+<img width="719" alt="image" src="assets/tfStateListVMControl1.png">
+
+And we've got our brand new virtual machine right here. Go ahead and copy that. Then ``terraform state show`` and paste that in.
+
+<img width="719" alt="image" src="assets/tfStateShowPIP1VMControl1.png">
+
+we can see we've got our public IP address for our instance `` public_ip_address = "4.246.74.48"``
+
+now let's try connect: ``ssh -i ~/.ssh/k8sLabs k8slabsadmin@4.246.74.48``, you may have had a confirmation screen ``yes``
+
+<img width="719" alt="image" src="assets/sshVMControl1.png">
+
+inside the vm connection run ``lsb_release -a`` we can see we are now within our Ubuntu instance.
+
+<img width="719" alt="image" src="assets/vmControlCommand1.png">
+
+## Install Docker Engine
+
+We're going to utilize the custom data argument to bootstrap our instance and install the Docker engine. This will allow us to have a Linux VM instance deployed with Docker ready to go
+for all of our development needs.
+
+### SSH Config Scripts
+First of all, what I want to do is create a new file in VS Code. And we're just going to call that ``customData.TPL``. Now TPL is the extension we typically use for template files. We're not going to make this necessarily a template file, but just for consistency sake, we're going to use that here just in case you'd like to eventually add some variables.
+
+```
+#!/bin/bash
+sudo apt-get update -y &&
+sudo apt-get install -y \
+apt-transport-https \
+ca-certificates \
+curl \
+gnupg-agent \
+software-properties-common &&
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - &&
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" &&
+sudo apt-get update -y &&
+sudo apt-get install docker-ce docker-ce-cli containerd.io -y &&
+sudo usermod -aG docker ubuntu
+
+```
+
+Should be a bash script, just like so. And what this is going to do is install all of the dependencies necessary to install Docker on our machine. So go ahead and save that and feel
+free to close that tab.
+
+### Add Custom Data to main.tf
+
+And then what I want to do is add the custom data argument using the [filebase64 Function](https://developer.hashicorp.com/terraform/language/functions/filebase64) The file base 64 function is very much like the file function. But what it does is it encodes it in base 64, which is what the custom data field for Azure is expecting.
+
+```
+resource "azurerm_linux_virtual_machine" "k8sLabs-VM-Control" {
+  name                = "k8sLabs-Control"
+  resource_group_name = azurerm_resource_group.k8sLabs-resources.name
+  location            = azurerm_resource_group.k8sLabs-resources.location
+  size                = "Standard_F2"
+  admin_username      = "k8slabsadmin"
+  network_interface_ids = [
+    azurerm_network_interface.nic01-k8sLabs-Control.id,
+  ]
+
+  custom_data = filebase64("customData.tpl")
+
+  admin_ssh_key {
+    username   = "k8slabsadmin"
+    public_key = file("~/.ssh/k8sLabs.pub")
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
+  }
+}
+```
+
+let's go ahead and run our ``Terraform FMT``. And then let's run a ``Terraform plan``
+Now we've got something a little bit different this time around. We've got ``Plan: 1 to add, 0 to change, 1 to destroy.``. So this isn't changed because custom data requires the VM to be redeployed for it to be read. So it's going to destroy our instance and replace it with a new one. As you can see here, custom data forces replacement.
+
+<img width="719" alt="image" src="assets/tfPlanVMControl2.png">
+
+Now, another cool thing you can see is sensitive value. Certain arguments can be dedicated as sensitive and custom data is one of those. This way it does not show up here. Now it can still show up in your state. And that data, of course, is still in this file. But it's not going to show up right here for everyone to see in your terminal. 
+
+Let's go ahead and run a ``Terraform apply -auto-approve``, just like so.
+
+<img width="719" alt="image" src="assets/tfApplyVMControl2.png">
+
+### Test to Login
+
+Let's go ahead and see if we can log in now. So we're going to need to get that IP address again. So let's run our ``Terraform state list``. And we'll just grab that virtual machine right there and ``Terraform state show``, paste that in.
+Let's try to connect ``ssh -i ~/.ssh/k8sLabs k8slabsadmin@20.230.232.255``
+
+<img width="719" alt="image" src="assets/sshVMControl2.png">
+
+Let's go ahead and run a ``Docker --version``
+
+<img width="719" alt="image" src="assets/vmControlCommand2.png">
+
+Bam!!. Perfect. So now we have Docker installed on our brand new VM, ready to go.
+
+### Install remote SSH extension in VS code
+
+We're going to install the remote SSH extension in VS code, which will allow VS code to open a remote terminal in our VM. And then we're going to take a look at the configuration scripts we're going to use to insert the VM host information into our VM. The VM host information such as the IP address into our SSH config file that VS code uses to connect to those instances.
+
+So first up, on VS Code I'm going to click on extensions here. And I'm going to type remote SSH, just like so. And I'm going to click install.
+
+<img width="719" alt="image" src="assets/localVMVSCodeExtension1.png">
