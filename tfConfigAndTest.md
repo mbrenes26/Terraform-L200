@@ -609,3 +609,36 @@ So first ``Terraform state list``. Let's go ahead and copy our azurerm_linux_vir
 | Step 1 | Step 2 |
 |---|---|
 |<img width="719" alt="image" src="assets/tfApplyReplaceProvisioner1.png"> | <img width="719" alt="image" src="assets/tfApplyReplaceProvisioner2.png">|
+
+
+## The Data Sources
+
+Now data sources are ways that we can query items from the provider, in this case, Azure API, and utilize it within our code. Although we don't really need it,
+since it's already available in our state file, we're going to query the public IP we're using just to illustrate how data sources work.
+
+We've got the [Data Source](https://developer.hashicorp.com/terraform/language/data-sources) documentation, not too incredibly complicated. Basically, we just specify data instead of resource. We then pass in the data source we want to use, give it a name, and then pass in any of the expected arguments. 
+
+So what we want here is we want the [Data Source: azurerm_public_ip](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/public_ip) available to us to be released. So we want to be able to see these and access them from within our state and eventually pipe those to an output.
+
+```
+data "azurerm_public_ip" "k8sLabs-VM-Control-PIP" {
+  name                = azurerm_public_ip.k8sLabs-PIP-Control.name
+  resource_group_name = azurerm_resource_group.k8sLabs-resources.name
+}
+```
+
+So what we're doing is we are querying the IP address we created up here. As you remember, this is the name ``azurerm_public_ip.k8sLabs-PIP-Control`` name. We are querying that to get its IP address. Now, once again, we don't really need to do that because we're using the same state file. We just access it however we want or just access it just using our resource names. But if you, for instance, had another Terraform deployment
+without access to that state, then this is a way that we could do it. We could actually use a data source to access that IP within Azure without having to dig through the state file.
+
+So now let's go ahead and see what this looks like and what I'm going to do, we actually don't need to apply again because this data source is not a resource. It doesn't need to be applied. All we need to do is a refresh. So we're still going to use the apply keyword, but we're not going to actually apply anything to Azure at all. So we'll run ``Terraform apply -refresh-only``.
+
+<img width="719" alt="image" src="assets/tfApplyRefresh1.png"> 
+
+And as you can see, there are no changes, but we know we have made a change at least to our configuration file. So we do want to apply, apply complete. Let's now take a look in our state.
+
+You can see we actually have our new data source here. If you scroll down, we've got the IP right there, right at the top, very easy to find. So if I run a ``Terraform state list``, as you can see, we now have our **data:** ``data.azurerm_public_ip.k8sLabs-VM-Control-PIP``
+
+| Step 1 | Step 2 |
+|---|---|
+|<img width="719" alt="image" src="assets/tfApplyRefresh2.png"> | <img width="719" alt="image" src="assets/tfApplyRefresh3.png">|
+
