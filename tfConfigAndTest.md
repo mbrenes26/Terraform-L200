@@ -520,13 +520,13 @@ And if you open the config, you can see the format we're looking at. We're looki
 So what we're going to want to do is extract that information from our instance and insert it into this configuration file. So let's take a look at how our script is going to do that. Let's go ahead and create a new file. And depending on which operating system you're using, let's go ahead and create the file necessary. So since I'm on Windows, I will use ``windows-ssh-script.tpl``, just like so. And within that file, I'm going to
 copy in the script 
 ```
-add-content -path  ~/.ssh/config -value @'
+add-content -path  ~/.ssh/config -value @"
 
 Host ${hostname}
   HostName ${hostname}
   User ${user}
   IdentityFile ${identityFile}
-`@
+"@
 
 ```
 So what this is going to do is add the host, host name, user, and identity file to that file that we specify. Now, as you can see, you've got this interpolation syntax here. And what this is doing is essentially dictating that these are variables. And those variables will be passed in using the template file function, which we're going to cover very, very soon. So go ahead and save that.
@@ -599,3 +599,13 @@ provisioner "local-exec" {
   }
 #for linux will be: interpreter = ["bash", "-c"]
 ```
+
+Let's go ahead and run a Terraform plan and see if I missed anything else. As you can see, no changes, but we made a pretty big change. That's a lot of typing in our resource here. A provisioner does not get picked up by the state, remember. So it doesn't know that anything has changed. So what we need to do is we need to get rid of this instance. We need to destroy it and reapply it. And there are a lot of ways to do that, but the best way to do it is just to replace it.
+
+<img width="719" alt="image" src="assets/tfProvisioner1.png">
+
+So first ``Terraform state list``. Let's go ahead and copy our azurerm_linux_virtual_machine.k8sLabs-VM-Control right there and then run a ``Terraform apply -replace azurerm_linux_virtual_machine.k8sLabs-VM-Control``, and then paste in that resource.
+
+| Step 1 | Step 2 |
+|---|---|
+|<img width="719" alt="image" src="assets/tfApplyReplaceProvisioner1.png"> | <img width="719" alt="image" src="assets/tfApplyReplaceProvisioner2.png">|
