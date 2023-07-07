@@ -15,7 +15,11 @@ skill. Now We're going to open a new project in VS Code
 Install the Azure CLI, connect to our Azure account, and install a Terraform extension.  
 - Choose the operating system you're using and go ahead and install: 
 [Install Azure CLI on Windows](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli)  
-  `` winget install -e --id Microsoft.AzureCLI ``  
+  `` winget install -e --id Microsoft.AzureCLI ``
+
+or from Powershell
+
+  `` Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi``
 
   I'm going to go ahead and open a terminal and run az login to get logged into my account. You can also validate by running ``az account show``  
 
