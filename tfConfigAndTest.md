@@ -504,3 +504,98 @@ We're going to install the remote SSH extension in VS code, which will allow VS 
 So first up, on VS Code I'm going to click on extensions here. And I'm going to type remote SSH, just like so. And I'm going to click install.
 
 <img width="719" alt="image" src="assets/localVMVSCodeExtension1.png">
+
+So open the command palette ``Shift+Ctrl+P`` .And as you can see, mine's already there, but you can also start typing ``remote SSH``. And just to see how things work. If you click on ``add new SSH host``, and let's just say SSH admin at admin.com or whatever.
+
+<img width="719" alt="image" src="assets/localVMVSCodeExtension2.png">
+
+You can see you've actually got options potentially to configure different files. Go ahead and click on this first one. We want this location to be within our SSH directory. So click on that.
+
+<img width="719" alt="image" src="assets/localVMVSCodeExtension3.png">
+
+And if you open the config, you can see the format we're looking at. We're looking at a host, host name, user, and identity file, just like so.
+
+<img width="719" alt="image" src="assets/localVMVSCodeExtension4.png">
+
+So what we're going to want to do is extract that information from our instance and insert it into this configuration file. So let's take a look at how our script is going to do that. Let's go ahead and create a new file. And depending on which operating system you're using, let's go ahead and create the file necessary. So since I'm on Windows, I will use ``windows-ssh-script.tpl``, just like so. And within that file, I'm going to
+copy in the script 
+```
+add-content -path  ~/.ssh/config -value @'
+
+Host ${hostname}
+  HostName ${hostname}
+  User ${user}
+  IdentityFile ${identityFile}
+`@
+
+```
+So what this is going to do is add the host, host name, user, and identity file to that file that we specify. Now, as you can see, you've got this interpolation syntax here. And what this is doing is essentially dictating that these are variables. And those variables will be passed in using the template file function, which we're going to cover very, very soon. So go ahead and save that.
+
+### The Provisioner
+
+Now, a provisioner is not something you want to use for every deployment. Unlike other resources, a provisioner's success or failure will not be recorded or managed by state. So if something goes wrong, that's just
+too bad. There is no rollback or any other way to manage it other than just running it again.
+While this is not great for configuring remote instances, it's perfectly fine for something like this. Just adding information to a config file on our local terminal. This is a lightweight operation that doesn't affect the overall success of the deployment if something were to go wrong. So generally speaking, if you need something simple to do, use a provisioner. If you are configuring a remote instance, it's usually best to either use user data, custom data, or another type of application such as Ansible.
+
+So let's take a look over [Provisioners](https://developer.hashicorp.com/terraform/language/resources/provisioners/syntax)
+
+There's actually a lot of great information about using provisioners. And one of the most important things here is the usage of ``self``. 
+
+```
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo The server's IP address is ${self.private_ip}"
+  }
+}
+
+```
+
+Within a provisioner, you can just specify self and that will extract whatever attribute you need from what you're deploying. So if you need a private IP or a public IP, you just specify self, which simplifies the code. And then of course, you've also got creation time provisioners, which is the default. 
+
+And then you've got destroy time provisioners as well. Destroy time provisioners will perform an action whenever you destroy the script. So just keep that in mind.
+
+```
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "echo 'Destroy-time provisioner'"
+  }
+}
+
+```
+
+So let's go ahead and set up that provisioner. Now that provisioner is going to be set up within the Azure RM Linux virtual machine block. ``resource "azurerm_linux_virtual_machine" "k8sLabs-VM-Control" {...``
+
+```
+
+#The provisioner
+provisioner "local-exec" {
+  command = templatefile("windows-ssh-script.tpl",{
+...
+})
+}
+
+  tags = {
+    environment = "dev"
+  }
+}
+```
+
+You specify provisioner and then you need to specify the type of provisioner and you have ``local-exec`` and ``remote-exec``. Again, remote exec I would use very sparingly, better to use user data or to use Ansible or some other better tool. But this is a ``local-exec`` provisioner, which means it'll be running locally. And again, lightweight doesn't cause any disaster if something goes wrong with this provisioner. So then what we need to do is provide a command. So let's go ahead and provide that command. That command is actually going to be one of these scripts: . And to specify the script ``windows-ssh-script.tpl`` and pass in the variables, we're going to use what's called a [templatefile function](https://developer.hashicorp.com/terraform/language/functions/templatefile). So if you check out the template file function documentation, you specify template file, just like you did the file function, pass in the path to the file, and then you pass in the variables: `` templatefile(path, vars) ``.
+
+```
+provisioner "local-exec" {
+    command = templatefile("windows-ssh-script.tpl", {
+      hostname     = self.public_ip_address,
+      user         = "k8slabsadmin",
+      identityfile = "~/.ssh/k8sLabs"
+    })
+    interpreter = ["Powershell", "-Command"]
+    
+  }
+#for linux will be: interpreter = ["bash", "-c"]
+```
